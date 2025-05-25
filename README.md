@@ -18,3 +18,11 @@ go fmt | Formats all code in the each file
 go install | Installs the packages
 go get | Downloads the raw source code of someone else's package
 go test | Run tests
+
+### Pointers
+
+Command | Description
+--- | ---
+var example *type | You declare a variable that will reference a pointer to a type
+*pointer | You get the value of a pointer
+&variable | You get the reference of the pointer of a variable 
