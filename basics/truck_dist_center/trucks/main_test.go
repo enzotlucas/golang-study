@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"testing"
 )
 
@@ -9,13 +10,14 @@ func TestMain(t *testing.T) {
 		t.Run("should load and unload a truck cargo", func(t *testing.T) {
 			nt := &NormalTruck{id: "1"}
 			et := &EletricTruck{id: "2"}
+			ctx := context.Background()
 
-			err := processTruck(nt)
+			err := processTruck(ctx, nt)
 			if err != nil {
 				t.Fatalf("Error processing truck, message:\n %s", err)
 			}
 
-			err = processTruck(et)
+			err = processTruck(ctx, et)
 			if err != nil {
 				t.Fatalf("Error processing truck, message:\n %s", err)
 			}

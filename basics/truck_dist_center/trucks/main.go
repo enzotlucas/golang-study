@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -8,13 +9,20 @@ import (
 	"time"
 )
 
+type contextKey string
+
+var UserIdKey contextKey = "userID"
+
 type Truck interface {
 	LoadCargo() error
 	UnloadCargo() error
 }
 
-func processTruck(truck Truck) error {
+func processTruck(ctx context.Context, truck Truck) error {
 	fmt.Printf("Processing truck: %+v\n", truck)
+
+	ctx, cancel := context.WithTimeout(ctx, time.Second*2)
+	defer cancel()
 
 	time.Sleep(time.Second)
 
@@ -31,15 +39,18 @@ func processTruck(truck Truck) error {
 	return nil
 }
 
-func processFleet(fleet []Truck) error {
+func processFleet(ctx context.Context, fleet []Truck) error {
 	var wg sync.WaitGroup
+	errorsChan := make(chan error, len(fleet))
+	defer close(errorsChan)
 
 	for _, t := range fleet {
 		wg.Add(1)
 
 		go func(Truck) {
-			if err := processTruck(t); err != nil {
+			if err := processTruck(ctx, t); err != nil {
 				log.Println(err)
+				errorsChan <- err
 			}
 			wg.Done()
 		}(t)
@@ -47,7 +58,12 @@ func processFleet(fleet []Truck) error {
 
 	wg.Wait()
 
-	return nil
+	select {
+	case err := <-errorsChan:
+		return err
+	default:
+		return nil
+	}
 }
 
 type NormalTruck struct {
@@ -91,6 +107,9 @@ var (
 )
 
 func main() {
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, UserIdKey, 42)
+
 	fleet := []Truck{
 		&NormalTruck{id: "NT1", cargo: 0},
 		&EletricTruck{id: "EL1", cargo: 0, battery: 100},
@@ -98,7 +117,7 @@ func main() {
 		&EletricTruck{id: "EL2", cargo: 0, battery: 100},
 	}
 
-	if err := processFleet(fleet); err != nil {
+	if err := processFleet(ctx, fleet); err != nil {
 		log.Fatalf("Error processing fleet: %+v", err)
 	}
 	log.Println("All trucks processed successfully!")
